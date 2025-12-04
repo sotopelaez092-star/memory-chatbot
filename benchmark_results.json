@@ -1,0 +1,186 @@
+{
+  "短对话(5轮)": [
+    {
+      "compressor": "SlidingWindow",
+      "original_messages": 10,
+      "compressed_messages": 10,
+      "original_tokens": 126,
+      "compressed_tokens": 126,
+      "message_reduction": "0.0%",
+      "token_reduction": "0.0%",
+      "time_ms": "0.00",
+      "cost_usd": "$0.000000"
+    },
+    {
+      "compressor": "LLMSummary",
+      "original_messages": 10,
+      "compressed_messages": 7,
+      "original_tokens": 126,
+      "compressed_tokens": 284,
+      "message_reduction": "30.0%",
+      "token_reduction": "-125.4%",
+      "time_ms": "7647.04",
+      "cost_usd": "$0.000018"
+    },
+    {
+      "compressor": "Hybrid",
+      "original_messages": 10,
+      "compressed_messages": 6,
+      "original_tokens": 126,
+      "compressed_tokens": 78,
+      "message_reduction": "40.0%",
+      "token_reduction": "38.1%",
+      "time_ms": "0.00",
+      "cost_usd": "$0.000000"
+    },
+    {
+      "compressor": "TokenBased",
+      "original_messages": 10,
+      "compressed_messages": 10,
+      "original_tokens": 126,
+      "compressed_tokens": 126,
+      "message_reduction": "0.0%",
+      "token_reduction": "0.0%",
+      "time_ms": "0.04",
+      "cost_usd": "$0.000000"
+    }
+  ],
+  "中等对话(10轮)": [
+    {
+      "compressor": "SlidingWindow",
+      "original_messages": 20,
+      "compressed_messages": 10,
+      "original_tokens": 249,
+      "compressed_tokens": 123,
+      "message_reduction": "50.0%",
+      "token_reduction": "50.6%",
+      "time_ms": "0.00",
+      "cost_usd": "$0.000000"
+    },
+    {
+      "compressor": "LLMSummary",
+      "original_messages": 20,
+      "compressed_messages": 7,
+      "original_tokens": 249,
+      "compressed_tokens": 355,
+      "message_reduction": "65.0%",
+      "token_reduction": "-42.6%",
+      "time_ms": "7856.24",
+      "cost_usd": "$0.000035"
+    },
+    {
+      "compressor": "Hybrid",
+      "original_messages": 20,
+      "compressed_messages": 6,
+      "original_tokens": 249,
+      "compressed_tokens": 74,
+      "message_reduction": "70.0%",
+      "token_reduction": "70.3%",
+      "time_ms": "0.01",
+      "cost_usd": "$0.000000"
+    },
+    {
+      "compressor": "TokenBased",
+      "original_messages": 20,
+      "compressed_messages": 20,
+      "original_tokens": 249,
+      "compressed_tokens": 249,
+      "message_reduction": "0.0%",
+      "token_reduction": "0.0%",
+      "time_ms": "0.18",
+      "cost_usd": "$0.000000"
+    }
+  ],
+  "长对话(20轮)": [
+    {
+      "compressor": "SlidingWindow",
+      "original_messages": 42,
+      "compressed_messages": 10,
+      "original_tokens": 560,
+      "compressed_tokens": 145,
+      "message_reduction": "76.2%",
+      "token_reduction": "74.1%",
+      "time_ms": "0.00",
+      "cost_usd": "$0.000000"
+    },
+    {
+      "compressor": "LLMSummary",
+      "original_messages": 42,
+      "compressed_messages": 7,
+      "original_tokens": 560,
+      "compressed_tokens": 551,
+      "message_reduction": "83.3%",
+      "token_reduction": "1.6%",
+      "time_ms": "12336.22",
+      "cost_usd": "$0.000078"
+    },
+    {
+      "compressor": "Hybrid",
+      "original_messages": 42,
+      "compressed_messages": 7,
+      "original_tokens": 560,
+      "compressed_tokens": 512,
+      "message_reduction": "83.3%",
+      "token_reduction": "8.6%",
+      "time_ms": "11777.37",
+      "cost_usd": "$0.000000"
+    },
+    {
+      "compressor": "TokenBased",
+      "original_messages": 42,
+      "compressed_messages": 42,
+      "original_tokens": 560,
+      "compressed_tokens": 560,
+      "message_reduction": "0.0%",
+      "token_reduction": "0.0%",
+      "time_ms": "0.44",
+      "cost_usd": "$0.000000"
+    }
+  ],
+  "超长对话(30轮)": [
+    {
+      "compressor": "SlidingWindow",
+      "original_messages": 68,
+      "compressed_messages": 10,
+      "original_tokens": 933,
+      "compressed_tokens": 144,
+      "message_reduction": "85.3%",
+      "token_reduction": "84.6%",
+      "time_ms": "0.01",
+      "cost_usd": "$0.000000"
+    },
+    {
+      "compressor": "LLMSummary",
+      "original_messages": 68,
+      "compressed_messages": 7,
+      "original_tokens": 933,
+      "compressed_tokens": 685,
+      "message_reduction": "89.7%",
+      "token_reduction": "26.6%",
+      "time_ms": "15123.42",
+      "cost_usd": "$0.000131"
+    },
+    {
+      "compressor": "Hybrid",
+      "original_messages": 68,
+      "compressed_messages": 7,
+      "original_tokens": 933,
+      "compressed_tokens": 630,
+      "message_reduction": "89.7%",
+      "token_reduction": "32.5%",
+      "time_ms": "13596.22",
+      "cost_usd": "$0.000000"
+    },
+    {
+      "compressor": "TokenBased",
+      "original_messages": 68,
+      "compressed_messages": 68,
+      "original_tokens": 933,
+      "compressed_tokens": 933,
+      "message_reduction": "0.0%",
+      "token_reduction": "0.0%",
+      "time_ms": "0.39",
+      "cost_usd": "$0.000000"
+    }
+  ]
+}
