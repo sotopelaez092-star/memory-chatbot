@@ -22,7 +22,7 @@ class ShortTermMemory:
         self.max_messages = max_turns * 2  # 每轮包含user和assistant两条消息
         
         # 使用deque实现固定大小的队列
-        self.messages: deque = deque(maxlen=self.max_messages)
+        self.messages: deque = deque()
 
     def add_message(self, role: str, content: str) -> None:
         """
@@ -59,6 +59,18 @@ class ShortTermMemory:
         """
         return list(self.messages)[-n:] if n > 0 else []
 
+    def check_overflow(self) -> List[Dict[str, str]]:
+        """
+        检查是否溢出，返回需要溢出的消息
+        
+        Returns:
+            溢出的消息列表（如果没有溢出，返回空列表）
+        """
+        overflow = []
+        while len(self.messages) > self.max_messages:
+            overflow.append(self.messages.popleft())
+        return overflow
+
     def clear(self) -> None:
         """清空所有消息"""
         self.messages.clear()
@@ -87,6 +99,8 @@ class ShortTermMemory:
 
     def __repr__(self) -> str:
         return f"ShortTermMemory(messages={len(self.messages)}, max={self.max_messages})"
+
+
 
 
 # 测试代码
