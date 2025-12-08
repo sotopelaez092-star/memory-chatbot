@@ -10,7 +10,7 @@ import os
 # 获取当前用户名
 username = os.getenv("USER")  
 
-DATABASE_URL = f"postgresql+asyncpg://{username}@localhost:5432/memory_chatbot"
+DATABASE_URL = f"postgresql+asyncpg://{username}@localhost:5432/memory_chatbot_test"
 import asyncio
 import sys
 from pathlib import Path

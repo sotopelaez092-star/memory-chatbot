@@ -1,186 +1,157 @@
 """
-Redis存储层
-
-基于Sorted Set + Hash实现中期记忆存储
+Redis缓存存储
 """
 
 import json
-import time
 from typing import List, Dict, Optional
-import redis
-
-from .lua_scripts import (
-    ADD_MESSAGE_SCRIPT,
-    GET_MESSAGES_SCRIPT,
-    UPDATE_PROFILE_SCRIPT
-)
-
+import redis.asyncio as aioredis
 
 class RedisStorage:
-    """
-    Redis存储管理器
-    
-    数据结构：
-    - chat:{user_id}:{session_id}:messages  # Sorted Set，存储消息
-    - chat:{user_id}:{session_id}:meta      # Hash，存储元数据
-    - chat:{user_id}:{session_id}:profile   # Hash，存储用户画像
-    - chat:{user_id}:{session_id}:summary   # Hash，存储历史摘要
-    """
-    
+    """Redis缓存存储"""
+
     def __init__(
         self,
-        redis_client: redis.Redis,
-        max_messages: int = 50,
-        ttl: int = 604800  # 7天
+        host: str = "localhost",
+        port: int = 6379,
+        db: int = 0,
+        default_ttl: int = 3600
+    ):
+        self.host = host
+        self.port = port
+        self.db = db
+        self.default_ttl = default_ttl
+        self.redis = None
+
+    async def connect(self):
+        """建立连接"""
+        self.redis = await aioredis.from_url(
+            f"redis://{self.host}:{self.port}/{self.db}",
+            encoding="utf-8",
+            decode_responses=True
+        )
+
+    async def close(self):
+        """关闭连接"""
+        if self.redis:
+            await self.redis.close()
+            self.redis = None
+
+    def _message_list_key(self, user_id: str, session_id: str) -> str:
+        """生成消息列表的缓存key"""
+        # 返回格式：messages:{user_id}:{session_id}
+        return f"messages:{user_id}:{session_id}"
+
+    async def cache_messages(
+        self,
+        user_id: str,
+        session_id: str,
+        messages: List[Dict],
+        ttl: Optional[int] = None
     ):
         """
-        初始化
-        
-        Args:
-            redis_client: Redis客户端
-            max_messages: 最多保留消息数
-            ttl: 过期时间（秒）
-        """
-        self.redis = redis_client
-        self.max_messages = max_messages
-        self.ttl = ttl
-        
-        # 注册Lua脚本（提高性能）
-        self.add_message_sha = self.redis.script_load(ADD_MESSAGE_SCRIPT)
-        self.get_messages_sha = self.redis.script_load(GET_MESSAGES_SCRIPT)
-        self.update_profile_sha = self.redis.script_load(UPDATE_PROFILE_SCRIPT)
+        缓存消息列表
     
-    def _get_key(self, user_id: str, session_id: str, suffix: str) -> str:
-        """生成Redis key"""
-        return f"chat:{user_id}:{session_id}:{suffix}"
-    
-    def add_message(
-        self,
-        user_id: str,
-        session_id: str,
-        role: str,
-        content: str,
-        timestamp: Optional[float] = None
-    ) -> int:
-        """
-        添加消息（原子操作）
-        
         Args:
             user_id: 用户ID
             session_id: 会话ID
-            role: 角色（user/assistant/system）
-            content: 消息内容
-            timestamp: 时间戳（可选，默认当前时间）
-        
-        Returns:
-            当前消息总数
+            messages: 消息列表 [{"role": "user", "content": "..."}]
+            ttl: 过期时间（秒），None使用默认值
         """
-        if timestamp is None:
-            timestamp = time.time()
+        # 1. 生成key
+        key = self._message_list_key(user_id, session_id)
         
-        # 构造消息对象
-        message = {
-            "role": role,
-            "content": content,
-            "timestamp": timestamp
-        }
+        # 2. 序列化为JSON
+        json_messages = json.dumps(messages, ensure_ascii=False)
         
-        messages_key = self._get_key(user_id, session_id, "messages")
-        
-        # 使用Lua脚本原子性添加
-        count = self.redis.evalsha(
-            self.add_message_sha,
-            1,  # key数量
-            messages_key,  # KEYS[1]
-            json.dumps(message, ensure_ascii=False),  # ARGV[1]
-            timestamp,  # ARGV[2]
-            self.max_messages,  # ARGV[3]
-            self.ttl  # ARGV[4]
+        # 3. 设置缓存（带TTL）
+        await self.redis.setex(
+            key,
+            ttl or self.default_ttl,
+            json_messages
         )
         
-        return count
-    
-    def get_messages(
-        self,
-        user_id: str,
-        session_id: str,
-        limit: Optional[int] = None
-    ) -> List[Dict]:
-        """
-        获取消息列表
         
-        Args:
-            user_id: 用户ID
-            session_id: 会话ID
-            limit: 获取数量（None=全部）
-        
-        Returns:
-            消息列表
-        """
-        messages_key = self._get_key(user_id, session_id, "messages")
-        meta_key = self._get_key(user_id, session_id, "meta")
-        
-        if limit is None:
-            limit = self.max_messages
-        
-        # 使用Lua脚本获取消息 + 更新访问时间
-        messages_json = self.redis.evalsha(
-            self.get_messages_sha,
-            2,  # key数量
-            messages_key,  # KEYS[1]
-            meta_key,  # KEYS[2]
-            limit,  # ARGV[1]
-            time.time()  # ARGV[2]
-        )
-        
-        # 反序列化
-        messages = [json.loads(msg) for msg in messages_json]
-        return messages
-    
-    def update_profile(
-        self,
-        user_id: str,
-        session_id: str,
-        profile_data: Dict[str, str]
-    ) -> bool:
-        """
-        更新用户画像
-        
-        Args:
-            user_id: 用户ID
-            session_id: 会话ID
-            profile_data: 画像数据，例如 {"name": "Tom", "age": "28"}
-        
-        Returns:
-            是否成功
-        """
-        profile_key = self._get_key(user_id, session_id, "profile")
-        
-        # 构造参数：[ttl, field1, value1, field2, value2, ...]
-        args = [self.ttl]
-        for field, value in profile_data.items():
-            args.extend([field, str(value)])
-        
-        # 使用Lua脚本更新
-        result = self.redis.evalsha(
-            self.update_profile_sha,
-            1,  # key数量
-            profile_key,  # KEYS[1]
-            *args  # ARGV[1], ARGV[2], ...
-        )
-        
-        return result == 1
-    
-    def get_profile(
+        print(f"  ✓ 缓存消息: {len(messages)}条 (TTL={ttl or self.default_ttl}s)")
+
+    async def get_cached_messages(
         self,
         user_id: str,
         session_id: str
-    ) -> Dict[str, str]:
+    ) -> Optional[List[Dict]]:
         """
-        获取用户画像
+        获取缓存的消息
         
         Returns:
-            用户画像字典
+            消息列表，缓存未命中返回None
         """
-        profile_key = self._get_key(user_id, session_id, "profile")
-        return self.redis.hgetall(profile_key)
+        # 1. 生成key
+        key = self._message_list_key(user_id, session_id)
+        
+        # 2. 从Redis读取
+        value = await self.redis.get(key)
+        
+        # 3. 判断是否命中
+        if value:
+            # 反序列化JSON
+            messages = json.loads(value)
+            print(f"  ✓ 缓存命中: {len(messages)}条消息")
+            return messages
+        else:
+            print(f"  ✗ 缓存未命中")
+            return None
+
+    def _profile_key(self, user_id: str, session_id: str) -> str:
+        """生成用户画像的缓存key"""
+        return f"profile:{user_id}:{session_id}"
+
+    async def cache_profile(
+        self,
+        user_id: str,
+        session_id: str,
+        profile: Dict[str, str],
+        ttl: Optional[int] = None
+    ):
+        """
+        缓存用户画像
+        
+        Args:
+            user_id: 用户ID
+            session_id: 会话ID
+            profile: 用户画像 {"name": "Tom", "age": "28"}
+            ttl: 过期时间（秒）
+        """
+        # 1. 生成key
+        key = self._profile_key(user_id, session_id)
+        
+        # 2. 设置Hash
+        await self.redis.hset(key, mapping=profile)
+        
+        # 3. 设置过期时间
+        await self.redis.expire(key, ttl or self.default_ttl)
+        
+        print(f"  ✓ 缓存画像: {list(profile.keys())}")
+
+    async def get_cached_profile(
+        self,
+        user_id: str,
+        session_id: str
+    ) -> Optional[Dict[str, str]]:
+        """
+        获取缓存的用户画像
+        
+        Returns:
+            用户画像，缓存未命中返回None
+        """
+        # 1. 生成key
+        key = self._profile_key(user_id, session_id)
+        
+        # 2. 读取Hash
+        profile = await self.redis.hgetall(key)
+        
+        # 3. 判断是否命中
+        if profile:
+            print(f"  ✓ 缓存命中: 画像 {list(profile.keys())}")
+            return profile
+        else:
+            print(f"  ✗ 缓存未命中: 画像")
+            return None
